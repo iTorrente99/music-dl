@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎵</title>
+    <title>YouTube MP3 Downloader</title>
     <style>
         :root {
             --primary: #ff0000;
@@ -116,6 +116,16 @@
             background-color: var(--primary-dark);
         }
         
+        .btn-secondary {
+            background-color: #555;
+            color: white;
+            margin-right: 0.5rem;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #444;
+        }
+        
         .actions {
             display: flex;
             justify-content: center;
@@ -167,6 +177,31 @@
             transition: width 0.3s;
         }
         
+        #downloadsList {
+            margin-top: 1.5rem;
+            display: none;
+        }
+        
+        .download-item {
+            background-color: rgba(255,255,255,0.05);
+            padding: 0.75rem;
+            border-radius: 5px;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .download-title {
+            flex-grow: 1;
+            margin-right: 1rem;
+            word-break: break-word;
+        }
+        
+        .download-btn {
+            white-space: nowrap;
+        }
+        
         @media (max-width: 768px) {
             body {
                 padding: 1rem;
@@ -178,6 +213,16 @@
             
             h1 {
                 font-size: 2rem;
+            }
+            
+            .download-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .download-title {
+                margin-bottom: 0.5rem;
+                margin-right: 0;
             }
         }
         
@@ -203,23 +248,23 @@
     <div class="container">
         <header>
             <h1><span class="logo">YouTube</span> MP3 Downloader</h1>
-            <p>Download YouTube videos as MP3 files from any device</p>
+            <p>Descarga videos de YouTube como archivos MP3 desde cualquier dispositivo</p>
         </header>
         
         <div class="form-group">
-            <label for="urls">YouTube URLs (one per line)</label>
+            <label for="urls">URLs de YouTube (una por línea)</label>
             <textarea id="urls" placeholder="https://youtu.be/uQ9_MwZIaoc
 https://youtu.be/example123
 ..."></textarea>
         </div>
         
         <div class="form-group">
-            <label for="password">Password</label>
-            <input type="password" id="password" placeholder="Enter your password">
+            <label for="password">Contraseña</label>
+            <input type="password" id="password" placeholder="Ingresa tu contraseña">
         </div>
         
         <div class="actions">
-            <button id="downloadBtn" class="btn btn-primary">Download MP3s</button>
+            <button id="downloadBtn" class="btn btn-primary">Procesar MP3s</button>
         </div>
         
         <div id="status" class="status"></div>
@@ -228,12 +273,17 @@ https://youtu.be/example123
             <div id="progressBar">
                 <div id="progressBarFill"></div>
             </div>
-            <div id="progressText">Processing: 0 of 0 files</div>
+            <div id="progressText">Procesando: 0 de 0 archivos</div>
+        </div>
+        
+        <div id="downloadsList">
+            <h3>Archivos MP3 listos para descargar:</h3>
+            <div id="downloadsContainer"></div>
         </div>
     </div>
     
     <footer>
-        <p>Music for personal use only. Respect copyright laws. (XD)</p>
+        <p>Música para uso personal. Respeta las leyes de derechos de autor.</p>
     </footer>
     
     <script>
@@ -245,46 +295,52 @@ https://youtu.be/example123
             const progressElement = document.getElementById('downloadProgress');
             const progressBarFill = document.getElementById('progressBarFill');
             const progressText = document.getElementById('progressText');
+            const downloadsList = document.getElementById('downloadsList');
+            const downloadsContainer = document.getElementById('downloadsContainer');
             
-            // Configure the server URL (replace with your actual server URL)
-            const SERVER_URL = 'http://localhost:5000/download';
+            // Configurar la URL del servidor (reemplazar con la URL real de tu servidor)
+            const SERVER_URL = 'http://localhost:5000';
             
             downloadBtn.addEventListener('click', async () => {
-                // Get input values
+                // Obtener valores de entrada
                 const urls = urlsInput.value.trim();
                 const password = passwordInput.value.trim();
                 
-                // Validate inputs
+                // Validar entradas
                 if (!urls) {
-                    showStatus('Please enter at least one YouTube URL', 'error');
+                    showStatus('Por favor ingresa al menos una URL de YouTube', 'error');
                     return;
                 }
                 
                 if (!password) {
-                    showStatus('Please enter the password', 'error');
+                    showStatus('Por favor ingresa la contraseña', 'error');
                     return;
                 }
                 
-                // Parse URLs (one per line)
+                // Analizar URLs (una por línea)
                 const urlList = urls.split('\n')
                     .map(url => url.trim())
                     .filter(url => url.length > 0);
                 
                 if (urlList.length === 0) {
-                    showStatus('No valid URLs found', 'error');
+                    showStatus('No se encontraron URLs válidas', 'error');
                     return;
                 }
                 
-                // Disable the download button and show loading state
+                // Deshabilitar el botón de descarga y mostrar estado de carga
                 downloadBtn.disabled = true;
-                downloadBtn.textContent = 'Processing...';
+                downloadBtn.textContent = 'Procesando...';
                 
-                // Hide any previous status message
+                // Ocultar cualquier mensaje de estado anterior
                 statusElement.style.display = 'none';
                 
+                // Ocultar lista de descargas previa
+                downloadsList.style.display = 'none';
+                downloadsContainer.innerHTML = '';
+                
                 try {
-                    // Send request to the local server
-                    const response = await fetch(SERVER_URL, {
+                    // Enviar solicitud al servidor local
+                    const response = await fetch(`${SERVER_URL}/download`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -295,87 +351,125 @@ https://youtu.be/example123
                         })
                     });
                     
-                    // Parse the response
+                    // Analizar la respuesta
                     const data = await response.json();
                     
                     if (response.ok) {
                         if (data.status === 'success') {
-                            // Start download progress tracking
+                            // Iniciar seguimiento de progreso de descarga
                             trackDownloadProgress(data.taskId);
                         } else {
-                            showStatus(data.message || 'Unknown error occurred', 'error');
+                            showStatus(data.message || 'Ocurrió un error desconocido', 'error');
                             resetDownloadButton();
                         }
                     } else {
-                        // Authentication error or server error
-                        showStatus(data.message || 'Server error occurred', 'error');
+                        // Error de autenticación o error del servidor
+                        showStatus(data.message || 'Ocurrió un error en el servidor', 'error');
                         resetDownloadButton();
                     }
                 } catch (error) {
-                    // Network error or other client-side error
-                    showStatus('Cannot connect to the download server. Make sure the local server is running.', 'error');
+                    // Error de red u otro error del lado del cliente
+                    showStatus('No se puede conectar al servidor de descarga. Asegúrate de que el servidor local esté ejecutándose.', 'error');
                     resetDownloadButton();
                 }
             });
             
-            // Function to track download progress
+            // Función para seguir el progreso de la descarga
             async function trackDownloadProgress(taskId) {
                 progressElement.style.display = 'block';
                 
-                // Poll the server for progress updates
+                // Sondear el servidor para actualizaciones de progreso
                 const progressInterval = setInterval(async () => {
                     try {
-                        const response = await fetch(`http://localhost:5000/status/${taskId}`);
+                        const response = await fetch(`${SERVER_URL}/status/${taskId}`);
                         const data = await response.json();
                         
                         if (response.ok) {
-                            // Update progress bar
-                            const { current, total, completed, message } = data;
+                            // Actualizar barra de progreso
+                            const { current, total, completed, message, files } = data;
                             
                             if (completed) {
-                                // Download complete
+                                // Descarga completada
                                 clearInterval(progressInterval);
                                 progressBarFill.style.width = '100%';
-                                progressText.textContent = `Completed: ${total} of ${total} files`;
-                                showStatus(message || 'Download complete! MP3 files saved to canciones-mp3 folder.', 'success');
+                                progressText.textContent = `Completado: ${total} de ${total} archivos`;
+                                
+                                if (files && files.length > 0) {
+                                    // Mostrar enlaces de descarga
+                                    displayDownloadLinks(files);
+                                    showStatus(message || 'Procesamiento completo! Descarga tus archivos MP3.', 'success');
+                                } else {
+                                    showStatus(message || 'Procesamiento completo, pero no hay archivos disponibles para descargar.', 'error');
+                                }
+                                
                                 resetDownloadButton();
-                                setTimeout(() => {
-                                    progressElement.style.display = 'none';
-                                }, 3000);
                             } else {
-                                // Update progress
+                                // Actualizar progreso
                                 const progressPercent = (current / total) * 100;
                                 progressBarFill.style.width = `${progressPercent}%`;
-                                progressText.textContent = `Processing: ${current} of ${total} files`;
+                                progressText.textContent = `Procesando: ${current} de ${total} archivos`;
                             }
                         } else {
-                            // Error in status check
+                            // Error en verificación de estado
                             clearInterval(progressInterval);
-                            showStatus('Error tracking download progress', 'error');
+                            showStatus('Error al rastrear el progreso de la descarga', 'error');
                             resetDownloadButton();
                             progressElement.style.display = 'none';
                         }
                     } catch (error) {
-                        // Network error in status check
+                        // Error de red en verificación de estado
                         clearInterval(progressInterval);
-                        showStatus('Lost connection to the download server', 'error');
+                        showStatus('Se perdió la conexión con el servidor de descarga', 'error');
                         resetDownloadButton();
                         progressElement.style.display = 'none';
                     }
-                }, 1000); // Check every second
+                }, 1000); // Verificar cada segundo
             }
             
-            // Helper function to show status messages
+            // Función para mostrar enlaces de descarga
+            function displayDownloadLinks(files) {
+                if (!files || files.length === 0) {
+                    return;
+                }
+                
+                // Limpiar contenedor
+                downloadsContainer.innerHTML = '';
+                
+                // Crear un elemento para cada archivo
+                files.forEach(file => {
+                    const downloadItem = document.createElement('div');
+                    downloadItem.className = 'download-item';
+                    
+                    const fileTitle = document.createElement('div');
+                    fileTitle.className = 'download-title';
+                    fileTitle.textContent = file.title || 'Archivo de audio';
+                    
+                    const downloadLink = document.createElement('a');
+                    downloadLink.className = 'btn btn-secondary download-btn';
+                    downloadLink.href = `${SERVER_URL}${file.url}`;
+                    downloadLink.textContent = 'Descargar MP3';
+                    downloadLink.download = ''; // Forzar descarga
+                    
+                    downloadItem.appendChild(fileTitle);
+                    downloadItem.appendChild(downloadLink);
+                    downloadsContainer.appendChild(downloadItem);
+                });
+                
+                // Mostrar la sección de descargas
+                downloadsList.style.display = 'block';
+            }
+            
+            // Función auxiliar para mostrar mensajes de estado
             function showStatus(message, type) {
                 statusElement.textContent = message;
                 statusElement.className = `status ${type}`;
                 statusElement.style.display = 'block';
             }
             
-            // Reset the download button to its initial state
+            // Restablecer el botón de descarga a su estado inicial
             function resetDownloadButton() {
                 downloadBtn.disabled = false;
-                downloadBtn.textContent = 'Download MP3s';
+                downloadBtn.textContent = 'Procesar MP3s';
             }
         });
     </script>
