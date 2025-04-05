@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵</title>
+    <style>
+        :root {
+            --primary: #ff0000;
+            --primary-dark: #cc0000;
+            --secondary: #282828;
+            --light: #f5f5f5;
+            --dark: #121212;
+            --success: #4CAF50;
+            --error: #f44336;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--dark);
+            color: var(--light);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 700px;
+            background-color: var(--secondary);
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--light);
+        }
+        
+        .logo {
+            color: var(--primary);
+            font-weight: bold;
+        }
+        
+        p {
+            color: #aaa;
+            margin-bottom: 1rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        textarea, input[type="password"] {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 5px;
+            border: 1px solid #444;
+            background-color: #333;
+            color: var(--light);
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+        
+        textarea:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.25);
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .actions {
+            display: flex;
+            justify-content: center;
+        }
+        
+        .status {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .status.success {
+            background-color: rgba(76, 175, 80, 0.2);
+            border: 1px solid var(--success);
+            color: var(--success);
+            display: block;
+        }
+        
+        .status.error {
+            background-color: rgba(244, 67, 54, 0.2);
+            border: 1px solid var(--error);
+            color: var(--error);
+            display: block;
+        }
+        
+        .status-icon {
+            margin-right: 0.5rem;
+        }
+        
+        #downloadProgress {
+            margin-top: 1.5rem;
+            display: none;
+        }
+        
+        #progressBar {
+            width: 100%;
+            height: 10px;
+            background-color: #444;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        
+        #progressBarFill {
+            height: 100%;
+            background-color: var(--primary);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .container {
+                padding: 1.5rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+        
+        footer {
+            margin-top: 2rem;
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        footer a {
+            color: #888;
+            text-decoration: none;
+        }
+        
+        footer a:hover {
+            text-decoration: underline;
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><span class="logo">YouTube</span> MP3 Downloader</h1>
+            <p>Download YouTube videos as MP3 files from any device</p>
+        </header>
+        
+        <div class="form-group">
+            <label for="urls">YouTube URLs (one per line)</label>
+            <textarea id="urls" placeholder="https://youtu.be/uQ9_MwZIaoc
+https://youtu.be/example123
+..."></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Enter your password">
+        </div>
+        
+        <div class="actions">
+            <button id="downloadBtn" class="btn btn-primary">Download MP3s</button>
+        </div>
+        
+        <div id="status" class="status"></div>
+        
+        <div id="downloadProgress">
+            <div id="progressBar">
+                <div id="progressBarFill"></div>
+            </div>
+            <div id="progressText">Processing: 0 of 0 files</div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>Music for personal use only. Respect copyright laws. (XD)</p>
+    </footer>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const downloadBtn = document.getElementById('downloadBtn');
+            const urlsInput = document.getElementById('urls');
+            const passwordInput = document.getElementById('password');
+            const statusElement = document.getElementById('status');
+            const progressElement = document.getElementById('downloadProgress');
+            const progressBarFill = document.getElementById('progressBarFill');
+            const progressText = document.getElementById('progressText');
+            
+            // Configure the server URL (replace with your actual server URL)
+            const SERVER_URL = 'http://localhost:5000/download';
+            
+            downloadBtn.addEventListener('click', async () => {
+                // Get input values
+                const urls = urlsInput.value.trim();
+                const password = passwordInput.value.trim();
+                
+                // Validate inputs
+                if (!urls) {
+                    showStatus('Please enter at least one YouTube URL', 'error');
+                    return;
+                }
+                
+                if (!password) {
+                    showStatus('Please enter the password', 'error');
+                    return;
+                }
+                
+                // Parse URLs (one per line)
+                const urlList = urls.split('\n')
+                    .map(url => url.trim())
+                    .filter(url => url.length > 0);
+                
+                if (urlList.length === 0) {
+                    showStatus('No valid URLs found', 'error');
+                    return;
+                }
+                
+                // Disable the download button and show loading state
+                downloadBtn.disabled = true;
+                downloadBtn.textContent = 'Processing...';
+                
+                // Hide any previous status message
+                statusElement.style.display = 'none';
+                
+                try {
+                    // Send request to the local server
+                    const response = await fetch(SERVER_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            urls: urlList,
+                            password: password
+                        })
+                    });
+                    
+                    // Parse the response
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        if (data.status === 'success') {
+                            // Start download progress tracking
+                            trackDownloadProgress(data.taskId);
+                        } else {
+                            showStatus(data.message || 'Unknown error occurred', 'error');
+                            resetDownloadButton();
+                        }
+                    } else {
+                        // Authentication error or server error
+                        showStatus(data.message || 'Server error occurred', 'error');
+                        resetDownloadButton();
+                    }
+                } catch (error) {
+                    // Network error or other client-side error
+                    showStatus('Cannot connect to the download server. Make sure the local server is running.', 'error');
+                    resetDownloadButton();
+                }
+            });
+            
+            // Function to track download progress
+            async function trackDownloadProgress(taskId) {
+                progressElement.style.display = 'block';
+                
+                // Poll the server for progress updates
+                const progressInterval = setInterval(async () => {
+                    try {
+                        const response = await fetch(`http://localhost:5000/status/${taskId}`);
+                        const data = await response.json();
+                        
+                        if (response.ok) {
+                            // Update progress bar
+                            const { current, total, completed, message } = data;
+                            
+                            if (completed) {
+                                // Download complete
+                                clearInterval(progressInterval);
+                                progressBarFill.style.width = '100%';
+                                progressText.textContent = `Completed: ${total} of ${total} files`;
+                                showStatus(message || 'Download complete! MP3 files saved to canciones-mp3 folder.', 'success');
+                                resetDownloadButton();
+                                setTimeout(() => {
+                                    progressElement.style.display = 'none';
+                                }, 3000);
+                            } else {
+                                // Update progress
+                                const progressPercent = (current / total) * 100;
+                                progressBarFill.style.width = `${progressPercent}%`;
+                                progressText.textContent = `Processing: ${current} of ${total} files`;
+                            }
+                        } else {
+                            // Error in status check
+                            clearInterval(progressInterval);
+                            showStatus('Error tracking download progress', 'error');
+                            resetDownloadButton();
+                            progressElement.style.display = 'none';
+                        }
+                    } catch (error) {
+                        // Network error in status check
+                        clearInterval(progressInterval);
+                        showStatus('Lost connection to the download server', 'error');
+                        resetDownloadButton();
+                        progressElement.style.display = 'none';
+                    }
+                }, 1000); // Check every second
+            }
+            
+            // Helper function to show status messages
+            function showStatus(message, type) {
+                statusElement.textContent = message;
+                statusElement.className = `status ${type}`;
+                statusElement.style.display = 'block';
+            }
+            
+            // Reset the download button to its initial state
+            function resetDownloadButton() {
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = 'Download MP3s';
+            }
+        });
+    </script>
+</body>
+</html>
